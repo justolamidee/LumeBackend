@@ -1,42 +1,71 @@
-const users = require("../models/User");
+const Users = require("../models/User");
+const {
+  validationUserSignup,
+  validationUserLogin,
+} = require("../validation/usersValidation");
+const signJwt = require("../utils/signJWT");
+const bcrypt = require("bcryptjs");
+const AppError = require("../utils/AppError");
+const { model } = require("mongoose");
 
-const register = (req, res)=>{
-    const {name, email, password} = req.body;
+const signUp = async (req, res, next) => {
+  try {
+    const validation = validationUserSignup(req.body);
 
-    if(!name || !email || !password){
-        return res.status(400).json({
-            status: "Bad request",
-            message: "Please provide name, email and password"
-        })
-    };
-
-    const existingUser = users.find(user => user.email === email);
-
-   
-    
-
-    if(existingUser){
-        return res.status(400).json({
-            message: "Email already exist, use a different email."
-        })
+    if (validation.error) {
+      throw new AppError(validation?.error.message, 400);
     }
 
-    const newUser = {
-        id: users.length + 1,
-        name,
-        email,
-        password
-    };
+    const { firstname, lastname, email, password } = req.body;
 
-    users.push(newUser);
+    //check if user already exist
+
+    const existingUser = await Users.findOne({ email });
+
+    if (existingUser) {
+      throw new AppError("User with email already exist");
+    }
+
+    //Hashing of password
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    
+
+    //create user
+
+    const user = await Users.create({
+      firstname,
+      lastname,
+      email,
+      password: hashedPassword,
+    });
+
+    if (!user) {
+      throw new AppError("Failed to create user");
+    }
+
+    await user.save();
+
+    const token = signJwt(user._id);
 
     res.status(201).json({
-        status: "Successful",
-        message: "Account created successfully",
-        user: newUser
+      status: 'succesful',
+      data: {
+        user,
+        token
+      }
+    });
+  } catch (error) {
+    next(error);
+    res.status(404).json({
+      status: 'Failed',
+      message: error.message
     })
+  }
 };
 
-//write the function to getAllUsers
 
-module.exports =  register
+
+module.exports = {signUp};
