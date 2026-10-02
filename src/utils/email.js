@@ -1,9 +1,12 @@
-const nodemailer = require('nodemailer');
+ const nodemailer = require('nodemailer');
 
 const sendEmail = async(options)=>{
     const email = process.env.EMAIL;
     const password = process.env.EMAIL_PASSWORD;
 
+    if (!email || !password) {
+        throw new Error("Email configuration is missing. Set EMAIL and EMAIL_PASSWORD in .env");
+    }
 
 
     //creating email transporter
@@ -21,14 +24,14 @@ const sendEmail = async(options)=>{
 
 
     const mailOptions = {
-        from: "Shopsy <officialrentdirect@gmail.com>",
+        from: `Shopsy <${email}>`,
         to: options.email,
         subject: options.subject,
         text: options.message
     };
 
 
-    await transporter.sendMail(mailOptions)
+    return transporter.sendMail(mailOptions)
 };
 
-module.exports = sendEmail;
+module.exports = sendEmail

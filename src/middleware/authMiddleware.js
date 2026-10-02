@@ -19,7 +19,9 @@ const protectRoute = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await Users.findById(decoded.id);
+    // const user = await Users.findById(decoded.id);
+    const user = await Users.findById(decoded.id).select("+password");
+
     if (!user) {
       return next(new AppError("User with specified ID not found", 404));
     }
